@@ -1,0 +1,106 @@
+version: '3.8'
+
+services:
+  coordination-server:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile
+    container_name: lsdamm-server
+    restart: unless-stopped
+    ports:
+      - "3001:3001"
+    volumes:
+      - mesh-data:/app/data
+      - mesh-logs:/app/logs
+      - ./config:/app/config:ro
+    environment:
+      - NODE_ENV=production
+      - DATABASE_PATH=/app/data/mesh.db
+      - LOG_PATH=/app/logs
+      - LOG_LEVEL=info
+      - JWT_SECRET=${JWT_SECRET}
+      - MESH_MASTER_KEY=${MESH_MASTER_KEY}
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
+      - GOOGLE_API_KEY=${GOOGLE_API_KEY}
+      - XAI_API_KEY=${XAI_API_KEY}
+      - OLLAMA_API_KEY=${OLLAMA_API_KEY}
+    networks:
+      - mesh-network
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:3001/api/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+    depends_on:
+      - qdrant
+      - meilisearch
+
+  qdrant:
+    image: qdrant/qdrant:latest
+    container_name: lsdamm-qdrant
+    restart: unless-stopped
+    ports:
+      - "6333:6333"
+      - "6334:6334"
+    volumes:
+      - qdrant-data:/qdrant/storage
+    environment:
+      - QDRANT__SERVICE__GRPC_PORT=6334
+    networks:
+      - mesh-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:6333/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  meilisearch:
+    image: getmeili/meilisearch:latest
+    container_name: lsdamm-meilisearch
+    restart: unless-stopped
+    ports:
+      - "7700:7700"
+    volumes:
+      - meili-data:/meili_data
+    environment:
+      - MEILI_MASTER_KEY=${MEILISEARCH_API_KEY}
+      - MEILI_ENV=production
+    networks:
+      - mesh-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:7700/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  ollama:
+    image: ollama/ollama:latest
+    container_name: lsdamm-ollama
+    restart: unless-stopped
+    ports:
+      - "11434:11434"
+    volumes:
+      - ollama-data:/root/.ollama
+    networks:
+      - mesh-network
+    # Uncomment for GPU support
+    # deploy:
+    #   resources:
+    #     reservations:
+    #       devices:
+    #         - driver: nvidia
+    #           count: 1
+    #           capabilities: [gpu]
+
+volumes:
+  mesh-data:
+  mesh-logs:
+  qdrant-data:
+  meili-data:
+  ollama-data:
+
+networks:
+  mesh-network:
+    driver: bridge

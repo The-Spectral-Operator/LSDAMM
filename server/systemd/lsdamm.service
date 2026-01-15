@@ -1,0 +1,38 @@
+[Unit]
+Description=LSDAMM Coordination Server
+Documentation=https://lackadaisical-security.com
+After=network.target
+
+[Service]
+Type=simple
+User=meshcoord
+Group=meshcoord
+WorkingDirectory=/opt/lsdamm/server
+
+# Environment
+Environment=NODE_ENV=production
+EnvironmentFile=-/opt/lsdamm/server/.env
+
+# Process settings
+ExecStart=/usr/bin/node /opt/lsdamm/server/dist/main.js
+Restart=always
+RestartSec=10
+
+# Security hardening
+NoNewPrivileges=yes
+PrivateTmp=yes
+ProtectSystem=strict
+ProtectHome=yes
+ReadWritePaths=/opt/lsdamm/server/data /opt/lsdamm/server/logs
+
+# Resource limits
+MemoryMax=2G
+TasksMax=100
+
+# Logging
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=lsdamm
+
+[Install]
+WantedBy=multi-user.target

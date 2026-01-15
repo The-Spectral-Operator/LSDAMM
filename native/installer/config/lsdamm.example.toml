@@ -1,0 +1,43 @@
+# LSDAMM Configuration
+# Lackadaisical Spectral Distributed AI MCP Mesh
+# (c) 2025 Lackadaisical Security
+
+[server]
+url = "wss://mesh.lackadaisical-security.com/ws"
+auth_token = ""
+client_id = ""
+
+[swim]
+port = 7946
+interval_ms = 1000
+probe_timeout_ms = 500
+suspect_timeout_ms = 5000
+
+[node]
+is_main = false
+auto_connect = true
+
+[ai]
+default_provider = "anthropic"
+default_model = "claude-sonnet-4-20250514"
+max_tokens = 4096
+temperature = 1.0
+
+[features]
+extended_thinking = true
+vision = true
+tts = true
+attachments = true
+
+[tts]
+voice = "alloy"
+speed = 1.0
+
+[gui]
+dark_mode = true
+window_width = 1280
+window_height = 800
+
+[logging]
+file = "lsdamm.log"
+level = "info"

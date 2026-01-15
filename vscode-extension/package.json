@@ -1,0 +1,254 @@
+{
+  "name": "lsdamm-vscode",
+  "displayName": "LSDAMM - AI Coordination Mesh",
+  "description": "Manage and interact with your Lackadaisical Spectral Distributed AI Mesh",
+  "version": "1.0.0",
+  "publisher": "lackadaisical-security",
+  "engines": {
+    "vscode": "^1.85.0"
+  },
+  "categories": [
+    "Other",
+    "Machine Learning"
+  ],
+  "keywords": [
+    "ai",
+    "llm",
+    "mesh",
+    "coordination",
+    "openai",
+    "anthropic",
+    "claude"
+  ],
+  "icon": "media/icon.png",
+  "galleryBanner": {
+    "color": "#1a1a2e",
+    "theme": "dark"
+  },
+  "activationEvents": [
+    "onStartupFinished"
+  ],
+  "main": "./out/extension.js",
+  "contributes": {
+    "commands": [
+      {
+        "command": "lsdamm.connect",
+        "title": "Connect to Mesh",
+        "category": "LSDAMM"
+      },
+      {
+        "command": "lsdamm.disconnect",
+        "title": "Disconnect from Mesh",
+        "category": "LSDAMM"
+      },
+      {
+        "command": "lsdamm.showPanel",
+        "title": "Show Mesh Panel",
+        "category": "LSDAMM"
+      },
+      {
+        "command": "lsdamm.askAI",
+        "title": "Ask AI",
+        "category": "LSDAMM"
+      },
+      {
+        "command": "lsdamm.explainCode",
+        "title": "Explain Selected Code",
+        "category": "LSDAMM"
+      },
+      {
+        "command": "lsdamm.reviewCode",
+        "title": "Review Selected Code",
+        "category": "LSDAMM"
+      },
+      {
+        "command": "lsdamm.generateTests",
+        "title": "Generate Tests for Selected Code",
+        "category": "LSDAMM"
+      },
+      {
+        "command": "lsdamm.extendedThinking",
+        "title": "Extended Thinking Analysis",
+        "category": "LSDAMM"
+      },
+      {
+        "command": "lsdamm.analyzeImage",
+        "title": "Analyze Image with Vision",
+        "category": "LSDAMM"
+      },
+      {
+        "command": "lsdamm.textToSpeech",
+        "title": "Read Response Aloud (TTS)",
+        "category": "LSDAMM"
+      },
+      {
+        "command": "lsdamm.uploadAttachment",
+        "title": "Upload Attachment to Context",
+        "category": "LSDAMM"
+      },
+      {
+        "command": "lsdamm.showStatistics",
+        "title": "Show Real-time Statistics",
+        "category": "LSDAMM"
+      },
+      {
+        "command": "lsdamm.showNodes",
+        "title": "Show Mesh Nodes",
+        "category": "LSDAMM"
+      }
+    ],
+    "menus": {
+      "editor/context": [
+        {
+          "command": "lsdamm.explainCode",
+          "when": "editorHasSelection",
+          "group": "lsdamm@1"
+        },
+        {
+          "command": "lsdamm.reviewCode",
+          "when": "editorHasSelection",
+          "group": "lsdamm@2"
+        },
+        {
+          "command": "lsdamm.generateTests",
+          "when": "editorHasSelection",
+          "group": "lsdamm@3"
+        }
+      ]
+    },
+    "configuration": {
+      "title": "LSDAMM",
+      "properties": {
+        "lsdamm.serverUrl": {
+          "type": "string",
+          "default": "wss://mesh.lackadaisical-security.com/ws",
+          "description": "Mesh server WebSocket URL"
+        },
+        "lsdamm.authToken": {
+          "type": "string",
+          "default": "",
+          "description": "Authentication token for mesh server"
+        },
+        "lsdamm.clientId": {
+          "type": "string",
+          "default": "",
+          "description": "Client ID for mesh connection"
+        },
+        "lsdamm.autoConnect": {
+          "type": "boolean",
+          "default": true,
+          "description": "Automatically connect to mesh on startup"
+        },
+        "lsdamm.defaultProvider": {
+          "type": "string",
+          "enum": ["openai", "anthropic", "google", "xai", "ollama"],
+          "default": "anthropic",
+          "description": "Default AI provider"
+        },
+        "lsdamm.defaultModel": {
+          "type": "string",
+          "default": "",
+          "description": "Default AI model (leave empty for provider default)"
+        },
+        "lsdamm.enableExtendedThinking": {
+          "type": "boolean",
+          "default": true,
+          "description": "Enable extended thinking mode for complex analysis"
+        },
+        "lsdamm.enableVision": {
+          "type": "boolean",
+          "default": true,
+          "description": "Enable vision capabilities for image analysis"
+        },
+        "lsdamm.enableTTS": {
+          "type": "boolean",
+          "default": true,
+          "description": "Enable text-to-speech for responses"
+        },
+        "lsdamm.ttsVoice": {
+          "type": "string",
+          "enum": ["alloy", "echo", "fable", "onyx", "nova", "shimmer"],
+          "default": "alloy",
+          "description": "Voice for text-to-speech"
+        },
+        "lsdamm.enableAttachments": {
+          "type": "boolean",
+          "default": true,
+          "description": "Enable file attachment uploads"
+        },
+        "lsdamm.maxAttachmentSize": {
+          "type": "number",
+          "default": 10485760,
+          "description": "Maximum attachment size in bytes (default 10MB)"
+        },
+        "lsdamm.requestTimeoutMs": {
+          "type": "number",
+          "default": 120000,
+          "description": "Request timeout in milliseconds. Extended thinking tasks may require longer timeouts (default 2 minutes)"
+        },
+        "lsdamm.maxTokens": {
+          "type": "number",
+          "default": 4096,
+          "description": "Maximum tokens for AI responses. Different providers have different limits."
+        }
+      }
+    },
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "lsdamm",
+          "title": "LSDAMM",
+          "icon": "media/mesh-icon.svg"
+        }
+      ]
+    },
+    "views": {
+      "lsdamm": [
+        {
+          "id": "lsdamm.status",
+          "name": "Connection Status"
+        },
+        {
+          "id": "lsdamm.nodes",
+          "name": "Mesh Nodes"
+        },
+        {
+          "id": "lsdamm.providers",
+          "name": "AI Providers"
+        },
+        {
+          "id": "lsdamm.statistics",
+          "name": "Real-time Statistics"
+        },
+        {
+          "id": "lsdamm.history",
+          "name": "History"
+        }
+      ]
+    }
+  },
+  "scripts": {
+    "vscode:prepublish": "npm run compile",
+    "compile": "tsc -p ./",
+    "watch": "tsc -watch -p ./",
+    "lint": "eslint src/",
+    "package": "vsce package",
+    "publish": "vsce publish"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.5",
+    "@types/vscode": "^1.85.0",
+    "@types/ws": "^8.5.14",
+    "@eslint/js": "^9.17.0",
+    "@typescript-eslint/eslint-plugin": "^8.19.1",
+    "@typescript-eslint/parser": "^8.19.1",
+    "typescript-eslint": "^8.19.1",
+    "eslint": "^9.17.0",
+    "typescript": "^5.7.3",
+    "vsce": "^2.15.0"
+  },
+  "dependencies": {
+    "uuid": "^11.0.5",
+    "ws": "^8.18.0"
+  }
+}
