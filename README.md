@@ -78,16 +78,45 @@ LSDAMM/
 
 ## 🚀 Quick Start
 
+### Windows Users (Automated Setup)
+
+**Recommended**: Use the automated setup script for easy installation:
+
+1. **Download or clone the repository**:
+   ```powershell
+   git clone https://github.com/The-Spectral-Operator/LSDAMM.git
+   cd LSDAMM
+   ```
+
+2. **Run the setup script**:
+   ```powershell
+   setup.bat
+   ```
+
+3. **Follow the prompts** to configure your API keys and settings
+
+4. **Start the services**:
+   ```powershell
+   start-all.bat
+   ```
+
+The setup script will:
+- ✅ Check for Node.js and npm
+- ✅ Install all dependencies
+- ✅ Set up configuration files
+- ✅ Initialize the database
+- ✅ Create startup scripts
+
 ### Prerequisites
 - Node.js 20+
 - npm or pnpm
 - Docker (optional)
 
-### Server Setup
+### Manual Server Setup (Linux/macOS/Windows)
 
 ```bash
 # Clone repository
-git clone https://github.com/Lackadaisical-Security/LSDAMM.git
+git clone https://github.com/The-Spectral-Operator/LSDAMM.git
 cd LSDAMM
 
 # Install server dependencies
@@ -279,6 +308,77 @@ The `docker-compose.yml` includes:
 | qdrant | 6333/6334 | Vector database |
 | meilisearch | 7700 | Full-text search |
 | ollama | 11434 | Local LLM runtime |
+
+---
+
+## 🚨 Troubleshooting
+
+### Common Issues
+
+#### Port Already in Use
+If you see "EADDRINUSE" error, another process is using port 3001:
+
+**Linux/macOS:**
+```bash
+# Find and kill the process
+lsof -ti:3001 | xargs kill -9
+```
+
+**Windows:**
+```powershell
+# Find process using port
+netstat -ano | findstr :3001
+# Kill process (replace PID)
+taskkill /PID <PID> /F
+```
+
+Or change the port in `config/server.toml`.
+
+#### Database Errors
+If database initialization fails:
+
+```bash
+cd server
+rm -f data/mesh.db  # Delete existing database
+npm run setup:db    # Reinitialize
+```
+
+#### Node.js Version Issues
+Ensure Node.js 20+ is installed:
+```bash
+node --version  # Should be v20.x.x or higher
+```
+
+Update if needed from https://nodejs.org/
+
+#### API Keys Not Working
+- Verify `.env` file exists in `server/` directory
+- Ensure no extra spaces around `=` signs
+- Check API key format matches provider requirements
+- Restart server after changing `.env`
+
+#### WebSocket Connection Failed
+- Check server is running: http://localhost:3001/api/health
+- Verify firewall isn't blocking port 3001
+- For remote connections, use `wss://` (secure) protocol
+- Check CORS settings in `config/server.toml`
+
+#### TypeScript Build Errors
+Clean and rebuild:
+```bash
+cd server
+rm -rf dist node_modules
+npm install
+npm run build
+```
+
+### Getting Help
+
+For additional help:
+- 📖 [Windows Setup Guide](docs/WINDOWS_SETUP.md)
+- 📖 [API Documentation](docs/API.md)
+- 🐛 [GitHub Issues](https://github.com/The-Spectral-Operator/LSDAMM/issues)
+- 💬 Check server logs in `server/logs/server.log`
 
 ---
 

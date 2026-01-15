@@ -22,7 +22,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
   statusBarManager = new StatusBarManager();
   
   // Initialize command handler
-  const commandHandler = new CommandHandler(meshService);
+  const commandHandler = new CommandHandler(meshService, context.extensionUri);
 
   // Register tree data providers
   const statusTreeProvider = new StatusTreeProvider(meshService);

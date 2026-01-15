@@ -375,6 +375,111 @@ Connect to: `wss://mesh.example.com/ws`
 
 ---
 
+## File Attachments & Vision
+
+### POST /api/attachments/upload
+
+Upload a file attachment for use in conversations.
+
+**Authentication:** Required (JWT or API key)
+
+**Request:**
+```json
+{
+  "filename": "document.pdf",
+  "data": "<base64-encoded-file-data>",
+  "encoding": "base64"
+}
+```
+
+**Response:**
+```json
+{
+  "fileId": "uuid",
+  "filename": "document.pdf",
+  "mimeType": "application/pdf",
+  "size": 102400,
+  "isImage": false,
+  "uploadedAt": 1705315200000
+}
+```
+
+**Allowed file types:**
+- Documents: `.txt`, `.md`, `.json`, `.yaml`, `.xml`, `.csv`, `.pdf`, `.doc`, `.docx`
+- Code: `.js`, `.ts`, `.py`, `.java`, `.c`, `.cpp`, `.h`, `.go`, `.rs`
+- Images: `.png`, `.jpg`, `.jpeg`, `.gif`, `.webp`, `.bmp`
+
+**Limits:**
+- Maximum file size: 10MB (configurable via `MAX_UPLOAD_SIZE` env var)
+- Rate limit: 100 uploads per minute per user
+
+### GET /api/attachments/:fileId
+
+Download or retrieve a previously uploaded attachment.
+
+**Authentication:** Required
+
+**Query Parameters:**
+- `inline` (optional): Set to `true` to display images inline
+
+**Response:** Binary file data with appropriate Content-Type header
+
+### DELETE /api/attachments/:fileId
+
+Delete an attachment.
+
+**Authentication:** Required
+
+**Response:**
+```json
+{
+  "message": "File deleted",
+  "fileId": "uuid"
+}
+```
+
+### POST /api/vision/analyze
+
+Analyze an image using AI vision capabilities (Claude, GPT-4 Vision, Gemini).
+
+**Authentication:** Required
+
+**Request:**
+```json
+{
+  "imageUrl": "https://example.com/image.jpg",
+  "prompt": "What objects are visible in this image?",
+  "provider": "anthropic",
+  "model": "claude-opus-4-5-20251101"
+}
+```
+
+Or with base64-encoded image:
+```json
+{
+  "imageData": "data:image/jpeg;base64,/9j/4AAQSkZJRg...",
+  "prompt": "Describe this image in detail",
+  "provider": "anthropic"
+}
+```
+
+**Response:**
+```json
+{
+  "analysis": "The image shows...",
+  "provider": "anthropic",
+  "model": "claude-opus-4-5-20251101",
+  "tokensUsed": 450
+}
+```
+
+**Supported providers:**
+- `anthropic`: Claude Opus/Sonnet (best for detailed analysis)
+- `openai`: GPT-4 Vision
+- `google`: Gemini Pro Vision
+
+---
+
 ## Rate Limits
 
 | Endpoint | Limit |

@@ -302,6 +302,7 @@ export class CoordinationWebSocketServer {
    */
   private async handleAIRequest(sessionId: string, message: MessageEnvelope): Promise<void> {
     const { route, streamRoute } = await import('../models/router.js');
+    const { memoryService } = await import('../services/memory_service.js');
     
     const payload = message.payload as {
       content: string;
@@ -310,18 +311,99 @@ export class CoordinationWebSocketServer {
       stream?: boolean;
       temperature?: number;
       maxTokens?: number;
+      conversationId?: string;
+      sessionMemoryId?: string;
+      systemPrompt?: string;
     };
 
+    const client = this.clients.get(sessionId);
+    const userId = client?.clientId || 'anonymous';
+
     try {
+      // Get or create conversation
+      let conversationId = payload.conversationId;
+      if (!conversationId && userId !== 'anonymous') {
+        try {
+          const conversation = await memoryService.createConversation(userId, {
+            sessionId: payload.sessionMemoryId,
+            provider: payload.provider,
+            model: payload.model,
+            systemPrompt: payload.systemPrompt
+          });
+          conversationId = conversation.id;
+        } catch (error) {
+          logger.debug('Could not create conversation for anonymous user', { error });
+        }
+      }
+
+      // Load conversation context and relevant memories
+      let contextMessages: Array<{ role: 'system' | 'user' | 'assistant'; content: string }> = [];
+      if (payload.systemPrompt) {
+        contextMessages.push({ role: 'system', content: payload.systemPrompt });
+      }
+
+      // Add recent conversation history
+      if (conversationId && userId !== 'anonymous') {
+        try {
+          const recentMessages = await memoryService.getConversationMessages(conversationId, { limit: 10 });
+          contextMessages = contextMessages.concat(
+            recentMessages.map(msg => ({
+              role: msg.role as 'system' | 'user' | 'assistant',
+              content: msg.content
+            }))
+          );
+        } catch (error) {
+          logger.debug('Could not load conversation history', { error });
+        }
+      }
+
+      // Add current user message
+      contextMessages.push({ role: 'user', content: payload.content });
+
+      // Save user message to database
+      if (conversationId && userId !== 'anonymous') {
+        try {
+          await memoryService.addMessage(conversationId, {
+            sessionId: payload.sessionMemoryId,
+            role: 'user',
+            content: payload.content,
+            provider: payload.provider,
+            model: payload.model
+          });
+        } catch (error) {
+          logger.debug('Could not save user message', { error });
+        }
+      }
+
+      const startTime = Date.now();
+
       if (payload.stream) {
         // Stream response
+        let fullResponse = '';
+        let thinkingContent = '';
+        let isThinking = false;
+
         for await (const chunk of streamRoute({
-          messages: [{ role: 'user', content: payload.content }],
+          messages: contextMessages,
           preferredProvider: payload.provider as 'openai' | 'anthropic' | 'ollama' | 'google' | 'xai' | undefined,
           preferredModel: payload.model,
           temperature: payload.temperature,
           maxTokens: payload.maxTokens,
         })) {
+          // Detect thinking blocks from Claude
+          const chunkContent = (chunk as { delta?: { content?: string } }).delta?.content || '';
+          if (chunkContent.includes('<thinking>')) {
+            isThinking = true;
+          }
+          if (isThinking) {
+            thinkingContent += chunkContent;
+            if (chunkContent.includes('</thinking>')) {
+              isThinking = false;
+            }
+          } else {
+            fullResponse += chunkContent;
+          }
+
           this.sendToClient(sessionId, {
             messageId: uuidv4(),
             version: '1.0',
@@ -334,6 +416,24 @@ export class CoordinationWebSocketServer {
           });
         }
 
+        // Save assistant response to database
+        if (conversationId && userId !== 'anonymous' && fullResponse) {
+          try {
+            const latencyMs = Date.now() - startTime;
+            await memoryService.addMessage(conversationId, {
+              sessionId: payload.sessionMemoryId,
+              role: 'assistant',
+              content: fullResponse,
+              thinkingContent: thinkingContent || undefined,
+              provider: payload.provider,
+              model: payload.model,
+              latencyMs
+            });
+          } catch (error) {
+            logger.debug('Could not save assistant message', { error });
+          }
+        }
+
         // Send stream end
         this.sendToClient(sessionId, {
           messageId: uuidv4(),
@@ -343,17 +443,36 @@ export class CoordinationWebSocketServer {
           correlationId: message.messageId,
           timestamp: Date.now(),
           priority: message.priority,
-          payload: {},
+          payload: { conversationId },
         });
       } else {
         // Non-streaming response
         const response = await route({
-          messages: [{ role: 'user', content: payload.content }],
+          messages: contextMessages,
           preferredProvider: payload.provider as 'openai' | 'anthropic' | 'ollama' | 'google' | 'xai' | undefined,
           preferredModel: payload.model,
           temperature: payload.temperature,
           maxTokens: payload.maxTokens,
         });
+
+        const latencyMs = Date.now() - startTime;
+
+        // Save assistant response to database
+        if (conversationId && userId !== 'anonymous') {
+          try {
+            await memoryService.addMessage(conversationId, {
+              sessionId: payload.sessionMemoryId,
+              role: 'assistant',
+              content: response.content || '',
+              tokensUsed: response.usage?.totalTokens,
+              provider: response.provider,
+              model: response.model,
+              latencyMs
+            });
+          } catch (error) {
+            logger.debug('Could not save assistant message', { error });
+          }
+        }
 
         this.sendToClient(sessionId, {
           messageId: uuidv4(),
@@ -363,7 +482,7 @@ export class CoordinationWebSocketServer {
           inReplyTo: message.messageId,
           timestamp: Date.now(),
           priority: message.priority,
-          payload: response as unknown as Record<string, unknown>,
+          payload: { ...response, conversationId } as unknown as Record<string, unknown>,
         });
       }
     } catch (error) {
