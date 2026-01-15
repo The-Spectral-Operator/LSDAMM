@@ -1,6 +1,7 @@
 /**
  * LSDAMM - Ollama Service
  * Integration with Ollama local and cloud APIs
+ * Supports Modelfile creation for purpose-specific models
  */
 
 import { getConfig } from '../util/config_parser.js';
@@ -39,6 +40,401 @@ export interface OllamaModel {
   size: number;
   digest: string;
   modifiedAt: string;
+}
+
+/**
+ * Modelfile configuration for creating custom models
+ */
+export interface ModelfileConfig {
+  name: string;
+  baseModel: string;
+  systemPrompt?: string;
+  template?: string;
+  parameters?: {
+    temperature?: number;
+    topK?: number;
+    topP?: number;
+    numPredict?: number;
+    repeatPenalty?: number;
+    seed?: number;
+    numCtx?: number;
+    numGpu?: number;
+  };
+  license?: string;
+  purpose?: 'coding' | 'reasoning' | 'creative' | 'analysis' | 'chat' | 'custom';
+  description?: string;
+}
+
+/**
+ * Model creation progress
+ */
+export interface ModelCreateProgress {
+  status: string;
+  digest?: string;
+  total?: number;
+  completed?: number;
+}
+
+/**
+ * Generate a Modelfile from configuration
+ */
+export function generateModelfile(config: ModelfileConfig): string {
+  const lines: string[] = [];
+  
+  // Base model
+  lines.push(`FROM ${config.baseModel}`);
+  lines.push('');
+  
+  // System prompt based on purpose or custom
+  if (config.systemPrompt) {
+    lines.push(`SYSTEM """${config.systemPrompt}"""`);
+  } else if (config.purpose) {
+    const purposePrompts: Record<string, string> = {
+      coding: 'You are an expert programmer and software engineer. You write clean, efficient, well-documented code. You follow best practices and design patterns. You explain your code clearly.',
+      reasoning: 'You are an expert analyst with strong logical reasoning abilities. You break down complex problems step by step, consider multiple perspectives, and provide well-reasoned conclusions.',
+      creative: 'You are a creative writer with a vivid imagination. You craft engaging, original content with rich descriptions and compelling narratives.',
+      analysis: 'You are a data analyst and researcher. You analyze information thoroughly, identify patterns, and provide actionable insights backed by evidence.',
+      chat: 'You are a helpful, friendly assistant. You engage in natural conversation while being informative and supportive.',
+      custom: 'You are a helpful AI assistant.',
+    };
+    lines.push(`SYSTEM """${purposePrompts[config.purpose]}"""`);
+  }
+  lines.push('');
+  
+  // Template (optional)
+  if (config.template) {
+    lines.push(`TEMPLATE """${config.template}"""`);
+    lines.push('');
+  }
+  
+  // Parameters
+  if (config.parameters) {
+    const params = config.parameters;
+    if (params.temperature !== undefined) lines.push(`PARAMETER temperature ${params.temperature}`);
+    if (params.topK !== undefined) lines.push(`PARAMETER top_k ${params.topK}`);
+    if (params.topP !== undefined) lines.push(`PARAMETER top_p ${params.topP}`);
+    if (params.numPredict !== undefined) lines.push(`PARAMETER num_predict ${params.numPredict}`);
+    if (params.repeatPenalty !== undefined) lines.push(`PARAMETER repeat_penalty ${params.repeatPenalty}`);
+    if (params.seed !== undefined) lines.push(`PARAMETER seed ${params.seed}`);
+    if (params.numCtx !== undefined) lines.push(`PARAMETER num_ctx ${params.numCtx}`);
+    if (params.numGpu !== undefined) lines.push(`PARAMETER num_gpu ${params.numGpu}`);
+    lines.push('');
+  }
+  
+  // License (optional)
+  if (config.license) {
+    lines.push(`LICENSE """${config.license}"""`);
+    lines.push('');
+  }
+  
+  return lines.join('\n');
+}
+
+/**
+ * Create a custom model from Modelfile
+ */
+export async function createModel(
+  config: ModelfileConfig,
+  useCloud: boolean = false,
+  onProgress?: (progress: ModelCreateProgress) => void
+): Promise<{ success: boolean; model: string; error?: string }> {
+  const appConfig = getConfig();
+  const baseUrl = useCloud 
+    ? appConfig.providers.ollama_cloud.base_url 
+    : appConfig.providers.ollama_local.base_url;
+  
+  const modelfile = generateModelfile(config);
+  
+  logger.info('Creating custom Ollama model', { 
+    name: config.name, 
+    baseModel: config.baseModel,
+    purpose: config.purpose,
+    useCloud 
+  });
+  
+  try {
+    const headers: Record<string, string> = {
+      'Content-Type': 'application/json',
+    };
+    
+    if (useCloud && appConfig.providers.ollama_cloud.api_key) {
+      headers['Authorization'] = `Bearer ${appConfig.providers.ollama_cloud.api_key}`;
+    }
+    
+    const response = await fetch(`${baseUrl}/api/create`, {
+      method: 'POST',
+      headers,
+      body: JSON.stringify({
+        name: config.name,
+        modelfile,
+        stream: true,
+      }),
+    });
+    
+    if (!response.ok) {
+      const errorText = await response.text();
+      throw new Error(`Model creation failed: ${errorText}`);
+    }
+    
+    // Stream progress
+    if (response.body) {
+      const reader = response.body.getReader();
+      const decoder = new TextDecoder();
+      let buffer = '';
+      
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        
+        buffer += decoder.decode(value, { stream: true });
+        const lines = buffer.split('\n');
+        buffer = lines.pop() || '';
+        
+        for (const line of lines) {
+          if (!line.trim()) continue;
+          
+          try {
+            const progress = JSON.parse(line) as ModelCreateProgress;
+            if (onProgress) {
+              onProgress(progress);
+            }
+            logger.debug('Model creation progress', progress);
+          } catch {
+            // Ignore parse errors
+          }
+        }
+      }
+    }
+    
+    logger.info('Custom model created successfully', { name: config.name });
+    
+    return {
+      success: true,
+      model: config.name,
+    };
+  } catch (error) {
+    logger.error('Failed to create custom model', { error, name: config.name });
+    return {
+      success: false,
+      model: config.name,
+      error: (error as Error).message,
+    };
+  }
+}
+
+/**
+ * Delete a custom model
+ */
+export async function deleteModel(
+  modelName: string,
+  useCloud: boolean = false
+): Promise<{ success: boolean; error?: string }> {
+  const appConfig = getConfig();
+  const baseUrl = useCloud 
+    ? appConfig.providers.ollama_cloud.base_url 
+    : appConfig.providers.ollama_local.base_url;
+  
+  try {
+    const headers: Record<string, string> = {
+      'Content-Type': 'application/json',
+    };
+    
+    if (useCloud && appConfig.providers.ollama_cloud.api_key) {
+      headers['Authorization'] = `Bearer ${appConfig.providers.ollama_cloud.api_key}`;
+    }
+    
+    const response = await fetch(`${baseUrl}/api/delete`, {
+      method: 'DELETE',
+      headers,
+      body: JSON.stringify({ name: modelName }),
+    });
+    
+    if (!response.ok) {
+      throw new Error(`Delete failed: ${response.statusText}`);
+    }
+    
+    logger.info('Model deleted', { name: modelName });
+    
+    return { success: true };
+  } catch (error) {
+    logger.error('Failed to delete model', { error, name: modelName });
+    return {
+      success: false,
+      error: (error as Error).message,
+    };
+  }
+}
+
+/**
+ * Copy a model with a new name
+ */
+export async function copyModel(
+  source: string,
+  destination: string,
+  useCloud: boolean = false
+): Promise<{ success: boolean; error?: string }> {
+  const appConfig = getConfig();
+  const baseUrl = useCloud 
+    ? appConfig.providers.ollama_cloud.base_url 
+    : appConfig.providers.ollama_local.base_url;
+  
+  try {
+    const headers: Record<string, string> = {
+      'Content-Type': 'application/json',
+    };
+    
+    if (useCloud && appConfig.providers.ollama_cloud.api_key) {
+      headers['Authorization'] = `Bearer ${appConfig.providers.ollama_cloud.api_key}`;
+    }
+    
+    const response = await fetch(`${baseUrl}/api/copy`, {
+      method: 'POST',
+      headers,
+      body: JSON.stringify({ source, destination }),
+    });
+    
+    if (!response.ok) {
+      throw new Error(`Copy failed: ${response.statusText}`);
+    }
+    
+    logger.info('Model copied', { source, destination });
+    
+    return { success: true };
+  } catch (error) {
+    logger.error('Failed to copy model', { error, source, destination });
+    return {
+      success: false,
+      error: (error as Error).message,
+    };
+  }
+}
+
+/**
+ * Pull a model from Ollama registry
+ */
+export async function pullModel(
+  modelName: string,
+  useCloud: boolean = false,
+  onProgress?: (progress: ModelCreateProgress) => void
+): Promise<{ success: boolean; error?: string }> {
+  const appConfig = getConfig();
+  const baseUrl = useCloud 
+    ? appConfig.providers.ollama_cloud.base_url 
+    : appConfig.providers.ollama_local.base_url;
+  
+  logger.info('Pulling model', { name: modelName, useCloud });
+  
+  try {
+    const headers: Record<string, string> = {
+      'Content-Type': 'application/json',
+    };
+    
+    if (useCloud && appConfig.providers.ollama_cloud.api_key) {
+      headers['Authorization'] = `Bearer ${appConfig.providers.ollama_cloud.api_key}`;
+    }
+    
+    const response = await fetch(`${baseUrl}/api/pull`, {
+      method: 'POST',
+      headers,
+      body: JSON.stringify({ name: modelName, stream: true }),
+    });
+    
+    if (!response.ok) {
+      throw new Error(`Pull failed: ${response.statusText}`);
+    }
+    
+    // Stream progress
+    if (response.body) {
+      const reader = response.body.getReader();
+      const decoder = new TextDecoder();
+      let buffer = '';
+      
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        
+        buffer += decoder.decode(value, { stream: true });
+        const lines = buffer.split('\n');
+        buffer = lines.pop() || '';
+        
+        for (const line of lines) {
+          if (!line.trim()) continue;
+          
+          try {
+            const progress = JSON.parse(line) as ModelCreateProgress;
+            if (onProgress) {
+              onProgress(progress);
+            }
+          } catch {
+            // Ignore parse errors
+          }
+        }
+      }
+    }
+    
+    logger.info('Model pulled successfully', { name: modelName });
+    
+    return { success: true };
+  } catch (error) {
+    logger.error('Failed to pull model', { error, name: modelName });
+    return {
+      success: false,
+      error: (error as Error).message,
+    };
+  }
+}
+
+/**
+ * Get model info/details
+ */
+export async function getModelInfo(
+  modelName: string,
+  useCloud: boolean = false
+): Promise<{
+  modelfile?: string;
+  parameters?: string;
+  template?: string;
+  details?: Record<string, unknown>;
+  error?: string;
+}> {
+  const appConfig = getConfig();
+  const baseUrl = useCloud 
+    ? appConfig.providers.ollama_cloud.base_url 
+    : appConfig.providers.ollama_local.base_url;
+  
+  try {
+    const headers: Record<string, string> = {
+      'Content-Type': 'application/json',
+    };
+    
+    if (useCloud && appConfig.providers.ollama_cloud.api_key) {
+      headers['Authorization'] = `Bearer ${appConfig.providers.ollama_cloud.api_key}`;
+    }
+    
+    const response = await fetch(`${baseUrl}/api/show`, {
+      method: 'POST',
+      headers,
+      body: JSON.stringify({ name: modelName }),
+    });
+    
+    if (!response.ok) {
+      throw new Error(`Show failed: ${response.statusText}`);
+    }
+    
+    const data = await response.json() as {
+      modelfile?: string;
+      parameters?: string;
+      template?: string;
+      details?: Record<string, unknown>;
+    };
+    
+    return data;
+  } catch (error) {
+    logger.error('Failed to get model info', { error, name: modelName });
+    return {
+      error: (error as Error).message,
+    };
+  }
 }
 
 /**
