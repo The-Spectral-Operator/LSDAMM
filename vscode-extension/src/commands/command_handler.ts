@@ -220,10 +220,11 @@ export class CommandHandler {
       this.outputChannel.appendLine(`Query: ${prompt}\n`);
       this.outputChannel.appendLine('--- Thinking Process ---');
       
+      // Use 8192 as a safe default for extended thinking (model limits vary)
       const response = await this.meshService.sendToAI(prompt, {
         systemPrompt: 'You are an expert analyst. Think step by step, show your reasoning process, consider multiple perspectives, and provide a thorough analysis.',
         extendedThinking: true,
-        maxTokens: 16000,
+        maxTokens: 8192,
       });
       
       this.outputChannel.appendLine('\n--- Analysis Complete ---\n');

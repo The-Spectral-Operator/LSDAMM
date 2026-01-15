@@ -188,9 +188,10 @@ export async function sendMessage(request: MessageRequest): Promise<MessageRespo
 
   try {
     // Prepare request parameters
+    // Use 8192 as max for extended thinking (safe for all models)
     const requestParams: Anthropic.MessageCreateParams = {
       model,
-      max_tokens: request.maxTokens ?? (useExtendedThinking ? 16000 : 4096),
+      max_tokens: request.maxTokens ?? (useExtendedThinking ? 8192 : 4096),
       messages: prepareMessages(request) as Anthropic.MessageParam[],
     };
 
@@ -205,10 +206,13 @@ export async function sendMessage(request: MessageRequest): Promise<MessageRespo
     }
 
     // Add extended thinking configuration
+    // Budget tokens should be between 1024 and model's max output tokens
+    // Using 8000 as a safe default that works with most models
     if (useExtendedThinking) {
+      const budgetTokens = Math.min(request.budgetTokens ?? 8000, 8000);
       (requestParams as Record<string, unknown>).thinking = {
         type: 'enabled',
-        budget_tokens: request.budgetTokens ?? 10000,
+        budget_tokens: budgetTokens,
       };
     }
 
@@ -274,7 +278,7 @@ export async function* streamMessage(request: MessageRequest): AsyncGenerator<St
     // Prepare request parameters
     const requestParams: Anthropic.MessageStreamParams = {
       model,
-      max_tokens: request.maxTokens ?? (useExtendedThinking ? 16000 : 4096),
+      max_tokens: request.maxTokens ?? (useExtendedThinking ? 8192 : 4096),
       messages: prepareMessages(request) as Anthropic.MessageParam[],
     };
 
@@ -289,10 +293,13 @@ export async function* streamMessage(request: MessageRequest): AsyncGenerator<St
     }
 
     // Add extended thinking configuration
+    // Budget tokens should be between 1024 and model's max output tokens
+    // Using 8000 as a safe default that works with most models
     if (useExtendedThinking) {
+      const budgetTokens = Math.min(request.budgetTokens ?? 8000, 8000);
       (requestParams as Record<string, unknown>).thinking = {
         type: 'enabled',
-        budget_tokens: request.budgetTokens ?? 10000,
+        budget_tokens: budgetTokens,
       };
     }
 
