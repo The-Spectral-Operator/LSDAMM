@@ -352,6 +352,7 @@ export class MemoryService {
       const countResult = db.prepare(`SELECT COUNT(*) as count FROM messages WHERE session_id = ? AND is_code_edit = 0`).get(options.sessionId) as { count: number };
       if (countResult.count >= MAX_MESSAGES_PER_SESSION) {
         logger.warn('Session message limit reached', { sessionId: options.sessionId, limit: MAX_MESSAGES_PER_SESSION });
+        throw new Error(`Session message limit reached (${MAX_MESSAGES_PER_SESSION} messages). Please start a new session.`);
       }
     }
 

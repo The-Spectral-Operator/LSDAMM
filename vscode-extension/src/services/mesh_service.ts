@@ -189,7 +189,9 @@ export class MeshService extends EventEmitter implements vscode.Disposable {
       };
 
       // Set up response listener with configurable timeout
-      const timeoutMs = config.get<number>('requestTimeoutMs') ?? 120000;
+      // Validate timeout range: 1000ms (1s) to 600000ms (10min)
+      const rawTimeout = config.get<number>('requestTimeoutMs') ?? 120000;
+      const timeoutMs = Math.max(1000, Math.min(600000, rawTimeout));
       const timeout = setTimeout(() => {
         this.removeAllListeners(`response:${messageId}`);
         reject(new Error('Request timeout'));

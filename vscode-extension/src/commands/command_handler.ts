@@ -221,6 +221,9 @@ export class CommandHandler {
       this.outputChannel.appendLine('--- Thinking Process ---');
       
       // Use configurable maxTokens with a reasonable default for extended thinking
+      // Cap at 8192 as a safe maximum that works across most AI providers
+      // (Claude max: 8192 for extended thinking, GPT-4: varies, Gemini: varies)
+      // Users can configure lower values via lsdamm.maxTokens setting
       const config = vscode.workspace.getConfiguration('lsdamm');
       const maxTokens = Math.min(config.get<number>('maxTokens') ?? 4096, 8192);
       
