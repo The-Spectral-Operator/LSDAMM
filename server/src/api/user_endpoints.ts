@@ -75,7 +75,7 @@ router.post('/login', authLimiter, async (req: Request, res: Response) => {
  * POST /api/users/refresh
  * Refresh access token
  */
-router.post('/refresh', async (req: Request, res: Response) => {
+router.post('/refresh', authLimiter, async (req: Request, res: Response) => {
   try {
     const { refreshToken } = req.body;
 
