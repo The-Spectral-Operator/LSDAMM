@@ -5,14 +5,17 @@
 
 import * as vscode from 'vscode';
 import { MeshService } from '../services/mesh_service';
+import { ChatPanel } from '../views/chat_panel';
 
 export class CommandHandler {
   private meshService: MeshService;
   private outputChannel: vscode.OutputChannel;
+  private extensionUri: vscode.Uri;
 
-  constructor(meshService: MeshService) {
+  constructor(meshService: MeshService, extensionUri: vscode.Uri) {
     this.meshService = meshService;
     this.outputChannel = vscode.window.createOutputChannel('LSDAMM');
+    this.extensionUri = extensionUri;
   }
 
   /**
@@ -34,8 +37,7 @@ export class CommandHandler {
    * Show mesh panel
    */
   async showPanel(): Promise<void> {
-    // TODO: Implement webview panel
-    vscode.window.showInformationMessage('LSDAMM: Panel coming soon');
+    ChatPanel.createOrShow(this.extensionUri, this.meshService);
   }
 
   /**
