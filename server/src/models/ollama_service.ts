@@ -4,6 +4,7 @@
  * Supports Modelfile creation for purpose-specific models
  */
 
+import { randomUUID } from 'node:crypto';
 import { getConfig } from '../util/config_parser.js';
 import { logger } from '../util/logging.js';
 
@@ -198,7 +199,7 @@ export async function createModel(
             if (onProgress) {
               onProgress(progress);
             }
-            logger.debug('Model creation progress', progress);
+            logger.debug('Model creation progress', progress as unknown as Record<string, unknown>);
           } catch {
             // Ignore parse errors
           }
@@ -544,7 +545,7 @@ export async function sendLocalMessage(request: MessageRequest): Promise<Message
     const latency = Date.now() - startTime;
 
     return {
-      messageId: crypto.randomUUID(),
+      messageId: randomUUID(),
       content: data.message.content,
       model: data.model,
       usage: {
@@ -690,7 +691,7 @@ export async function sendCloudMessage(request: MessageRequest): Promise<Message
     const latency = Date.now() - startTime;
 
     return {
-      messageId: crypto.randomUUID(),
+      messageId: randomUUID(),
       content: data.message.content,
       model: data.model,
       usage: {

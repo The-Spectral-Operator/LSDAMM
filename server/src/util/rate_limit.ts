@@ -13,6 +13,11 @@ const limiters = new Map<string, RateLimiterMemory>();
 
 /**
  * Get or create a rate limiter
+ * @param key - Unique key for the rate limiter
+ * @param points - Maximum number of requests allowed in the duration
+ * @param duration - Duration in milliseconds. Note: This is converted to seconds
+ *                   internally as the rate-limiter-flexible library expects seconds.
+ * @returns The rate limiter instance
  */
 function getRateLimiter(key: string, points: number, duration: number): RateLimiterMemory {
   const limiterKey = `${key}-${points}-${duration}`;
@@ -20,7 +25,7 @@ function getRateLimiter(key: string, points: number, duration: number): RateLimi
   if (!limiters.has(limiterKey)) {
     limiters.set(limiterKey, new RateLimiterMemory({
       points,
-      duration: duration / 1000, // Convert ms to seconds
+      duration: duration / 1000, // Convert ms to seconds (library expects seconds)
       keyPrefix: key
     }));
   }

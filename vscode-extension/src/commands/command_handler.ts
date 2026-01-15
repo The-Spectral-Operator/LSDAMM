@@ -220,11 +220,14 @@ export class CommandHandler {
       this.outputChannel.appendLine(`Query: ${prompt}\n`);
       this.outputChannel.appendLine('--- Thinking Process ---');
       
-      // Use 8192 as a safe default for extended thinking (model limits vary)
+      // Use configurable maxTokens with a reasonable default for extended thinking
+      const config = vscode.workspace.getConfiguration('lsdamm');
+      const maxTokens = Math.min(config.get<number>('maxTokens') ?? 4096, 8192);
+      
       const response = await this.meshService.sendToAI(prompt, {
         systemPrompt: 'You are an expert analyst. Think step by step, show your reasoning process, consider multiple perspectives, and provide a thorough analysis.',
         extendedThinking: true,
-        maxTokens: 8192,
+        maxTokens,
       });
       
       this.outputChannel.appendLine('\n--- Analysis Complete ---\n');

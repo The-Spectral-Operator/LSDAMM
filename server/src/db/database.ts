@@ -157,3 +157,8 @@ export function transaction<T>(fn: () => T): T {
   const db = getDatabase();
   return db.transaction(fn)();
 }
+
+/**
+ * Alias for getDatabase (for shorter syntax)
+ */
+export const getDb = getDatabase;

@@ -3,6 +3,7 @@
  * Integration with Google AI (Gemini) API
  */
 
+import { randomUUID } from 'node:crypto';
 import { getConfig } from '../util/config_parser.js';
 import { logger } from '../util/logging.js';
 
@@ -139,7 +140,7 @@ export async function sendMessage(request: MessageRequest): Promise<MessageRespo
     });
 
     return {
-      messageId: crypto.randomUUID(),
+      messageId: randomUUID(),
       content: candidate.content.parts.map(p => p.text).join(''),
       model,
       usage: {

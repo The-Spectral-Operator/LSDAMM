@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>LSDAMM Chatbot</title>
+  <link rel="stylesheet" href="css/styles.css">
+  <link rel="icon" type="image/png" href="/LSDAMM-icon512x512.png">
+</head>
+<body>
+  <div id="app">
+    <!-- Sidebar -->
+    <aside class="sidebar" id="sidebar">
+      <div class="sidebar-header">
+        <img src="/LSDAMM-icon512x512.png" alt="LSDAMM" class="logo">
+        <h1>LSDAMM</h1>
+        <button class="new-chat-btn" onclick="app.newConversation()">
+          <span>+</span> New Chat
+        </button>
+      </div>
+      
+      <div class="conversations-list" id="conversationsList">
+        <!-- Conversations populated by JS -->
+      </div>
+      
+      <div class="sidebar-footer">
+        <div class="connection-status" id="connectionStatus">
+          <span class="status-dot disconnected"></span>
+          <span>Disconnected</span>
+        </div>
+        <button class="settings-btn" onclick="app.openSettings()">
+          ⚙️ Settings
+        </button>
+      </div>
+    </aside>
+
+    <!-- Main Chat Area -->
+    <main class="chat-area">
+      <!-- Header -->
+      <header class="chat-header">
+        <button class="toggle-sidebar" onclick="app.toggleSidebar()">☰</button>
+        <div class="chat-title" id="chatTitle">New Conversation</div>
+        <div class="header-actions">
+          <select id="providerSelect" onchange="app.changeProvider(this.value)">
+            <option value="anthropic">Anthropic Claude</option>
+            <option value="openai">OpenAI GPT</option>
+            <option value="google">Google Gemini</option>
+            <option value="xai">xAI Grok</option>
+            <option value="ollama">Ollama (Local)</option>
+          </select>
+          <select id="modelSelect">
+            <!-- Models populated based on provider -->
+          </select>
+        </div>
+      </header>
+
+      <!-- Messages Container -->
+      <div class="messages-container" id="messagesContainer">
+        <div class="welcome-message" id="welcomeMessage">
+          <img src="/LSDAMM-icon512x512.png" alt="LSDAMM" class="welcome-logo">
+          <h2>Welcome to LSDAMM</h2>
+          <p>Lackadaisical Spectral Distributed AI MCP Mesh</p>
+          <div class="feature-cards">
+            <div class="feature-card" onclick="app.startWithPrompt('Explain something complex in simple terms')">
+              <span class="feature-icon">💡</span>
+              <span>Simple Explanations</span>
+            </div>
+            <div class="feature-card" onclick="app.startWithPrompt('Help me write code for...')">
+              <span class="feature-icon">💻</span>
+              <span>Code Assistance</span>
+            </div>
+            <div class="feature-card" onclick="app.startWithPrompt('Analyze this problem step by step')">
+              <span class="feature-icon">🧠</span>
+              <span>Deep Analysis</span>
+            </div>
+            <div class="feature-card" onclick="app.startWithPrompt('Creative writing help')">
+              <span class="feature-icon">✍️</span>
+              <span>Creative Writing</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Thinking Panel (for Chain of Thought) -->
+      <div class="thinking-panel" id="thinkingPanel">
+        <div class="thinking-header">
+          <span>🧠 Chain of Thought</span>
+          <button onclick="app.toggleThinkingPanel()">✕</button>
+        </div>
+        <div class="thinking-content" id="thinkingContent">
+          <!-- Thinking steps populated by JS -->
+        </div>
+      </div>
+
+      <!-- Input Area -->
+      <div class="input-area">
+        <div class="input-options">
+          <label class="option-toggle">
+            <input type="checkbox" id="extendedThinking" onchange="app.toggleExtendedThinking()">
+            <span>Extended Thinking</span>
+          </label>
+          <label class="option-toggle">
+            <input type="checkbox" id="showChainOfThought" onchange="app.toggleShowChainOfThought()">
+            <span>Show Chain of Thought</span>
+          </label>
+          <button class="attach-btn" onclick="app.attachFile()">
+            📎 Attach
+          </button>
+        </div>
+        
+        <div class="input-container">
+          <div class="attachments-preview" id="attachmentsPreview"></div>
+          <textarea 
+            id="messageInput" 
+            placeholder="Type your message..." 
+            rows="1"
+            onkeydown="app.handleKeydown(event)"
+            oninput="app.autoResize(this)"
+          ></textarea>
+          <button class="send-btn" onclick="app.sendMessage()" id="sendBtn">
+            <span class="send-icon">➤</span>
+          </button>
+        </div>
+        
+        <input type="file" id="fileInput" hidden multiple onchange="app.handleFileSelect(event)">
+      </div>
+    </main>
+
+    <!-- Settings Modal -->
+    <div class="modal" id="settingsModal">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h2>Settings</h2>
+          <button class="close-btn" onclick="app.closeSettings()">✕</button>
+        </div>
+        <div class="modal-body">
+          <div class="setting-group">
+            <label>Server URL</label>
+            <input type="text" id="serverUrl" placeholder="wss://your-server/ws">
+          </div>
+          <div class="setting-group">
+            <label>API Key</label>
+            <input type="password" id="apiKey" placeholder="Your API key">
+          </div>
+          <div class="setting-group">
+            <label>Client ID</label>
+            <input type="text" id="clientId" placeholder="Your client ID">
+          </div>
+          <div class="setting-group">
+            <label>Default System Prompt</label>
+            <textarea id="systemPrompt" rows="3" placeholder="You are a helpful assistant..."></textarea>
+          </div>
+          <div class="setting-group">
+            <label>Theme</label>
+            <select id="theme" onchange="app.changeTheme(this.value)">
+              <option value="dark">Dark (Cosmic)</option>
+              <option value="light">Light</option>
+              <option value="system">System</option>
+            </select>
+          </div>
+          <div class="setting-group">
+            <label>
+              <input type="checkbox" id="saveMemories" checked>
+              Save Memories for Context
+            </label>
+          </div>
+          <div class="setting-group">
+            <label>
+              <input type="checkbox" id="autoConnect" checked>
+              Auto-connect on Start
+            </label>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button class="btn-secondary" onclick="app.closeSettings()">Cancel</button>
+          <button class="btn-primary" onclick="app.saveSettings()">Save</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Statistics Panel -->
+    <div class="stats-panel" id="statsPanel">
+      <div class="stat">
+        <span class="stat-label">Tokens Used</span>
+        <span class="stat-value" id="tokensUsed">0</span>
+      </div>
+      <div class="stat">
+        <span class="stat-label">Latency</span>
+        <span class="stat-value" id="latency">0ms</span>
+      </div>
+      <div class="stat">
+        <span class="stat-label">Active Nodes</span>
+        <span class="stat-value" id="activeNodes">0</span>
+      </div>
+    </div>
+  </div>
+
+  <script src="js/app.js"></script>
+</body>
+</html>

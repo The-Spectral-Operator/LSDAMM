@@ -17,20 +17,24 @@ contextBridge.exposeInMainWorld('mesh', {
   
   // Events
   onConnected: (callback: () => void) => {
-    ipcRenderer.on('mesh:connected', callback);
-    return () => ipcRenderer.removeListener('mesh:connected', callback);
+    const handler = () => callback();
+    ipcRenderer.on('mesh:connected', handler);
+    return () => ipcRenderer.removeListener('mesh:connected', handler);
   },
   onDisconnected: (callback: () => void) => {
-    ipcRenderer.on('mesh:disconnected', callback);
-    return () => ipcRenderer.removeListener('mesh:disconnected', callback);
+    const handler = () => callback();
+    ipcRenderer.on('mesh:disconnected', handler);
+    return () => ipcRenderer.removeListener('mesh:disconnected', handler);
   },
   onMessage: (callback: (message: unknown) => void) => {
-    ipcRenderer.on('mesh:message', (_event, message) => callback(message));
-    return () => ipcRenderer.removeListener('mesh:message', callback);
+    const handler = (_event: Electron.IpcRendererEvent, message: unknown) => callback(message);
+    ipcRenderer.on('mesh:message', handler);
+    return () => ipcRenderer.removeListener('mesh:message', handler);
   },
   onError: (callback: (error: string) => void) => {
-    ipcRenderer.on('mesh:error', (_event, error) => callback(error));
-    return () => ipcRenderer.removeListener('mesh:error', callback);
+    const handler = (_event: Electron.IpcRendererEvent, error: string) => callback(error);
+    ipcRenderer.on('mesh:error', handler);
+    return () => ipcRenderer.removeListener('mesh:error', handler);
   },
 });
 

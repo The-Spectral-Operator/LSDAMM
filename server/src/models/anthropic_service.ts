@@ -210,7 +210,7 @@ export async function sendMessage(request: MessageRequest): Promise<MessageRespo
     // Using 8000 as a safe default that works with most models
     if (useExtendedThinking) {
       const budgetTokens = Math.min(request.budgetTokens ?? 8000, 8000);
-      (requestParams as Record<string, unknown>).thinking = {
+      (requestParams as unknown as Record<string, unknown>).thinking = {
         type: 'enabled',
         budget_tokens: budgetTokens,
       };
@@ -297,7 +297,7 @@ export async function* streamMessage(request: MessageRequest): AsyncGenerator<St
     // Using 8000 as a safe default that works with most models
     if (useExtendedThinking) {
       const budgetTokens = Math.min(request.budgetTokens ?? 8000, 8000);
-      (requestParams as Record<string, unknown>).thinking = {
+      (requestParams as unknown as Record<string, unknown>).thinking = {
         type: 'enabled',
         budget_tokens: budgetTokens,
       };

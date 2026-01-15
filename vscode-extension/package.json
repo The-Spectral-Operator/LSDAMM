@@ -180,6 +180,16 @@
           "type": "number",
           "default": 10485760,
           "description": "Maximum attachment size in bytes (default 10MB)"
+        },
+        "lsdamm.requestTimeoutMs": {
+          "type": "number",
+          "default": 120000,
+          "description": "Request timeout in milliseconds. Extended thinking tasks may require longer timeouts (default 2 minutes)"
+        },
+        "lsdamm.maxTokens": {
+          "type": "number",
+          "default": 4096,
+          "description": "Maximum tokens for AI responses. Different providers have different limits."
         }
       }
     },
@@ -228,6 +238,7 @@
   "devDependencies": {
     "@types/node": "^22.10.5",
     "@types/vscode": "^1.85.0",
+    "@types/ws": "^8.5.14",
     "@eslint/js": "^9.17.0",
     "@typescript-eslint/eslint-plugin": "^8.19.1",
     "@typescript-eslint/parser": "^8.19.1",
@@ -237,6 +248,7 @@
     "vsce": "^2.15.0"
   },
   "dependencies": {
-    "uuid": "^11.0.5"
+    "uuid": "^11.0.5",
+    "ws": "^8.18.0"
   }
 }

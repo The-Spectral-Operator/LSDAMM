@@ -1,11 +1,12 @@
 /**
  * LSDAMM VS Code Extension - Mesh Service
- * WebSocket client for mesh coordination
+ * WebSocket client for mesh coordination using 'ws' library for Node.js environment
  */
 
 import * as vscode from 'vscode';
 import { v4 as uuidv4 } from 'uuid';
 import { EventEmitter } from 'events';
+import WebSocket from 'ws';
 
 interface MessageEnvelope {
   messageId: string;
@@ -88,32 +89,31 @@ export class MeshService extends EventEmitter implements vscode.Disposable {
     }
 
     try {
-      // Note: In a real VS Code extension, you'd use a proper WebSocket implementation
-      // For now, this is a placeholder
+      // Using 'ws' library which is compatible with Node.js (VS Code extension runtime)
       this.ws = new WebSocket(serverUrl);
 
-      this.ws.onopen = () => {
+      this.ws.on('open', () => {
         console.log('Connected to mesh server');
         this.reconnectAttempts = 0;
         this.connectionStartTime = Date.now();
         this.register(clientId, authToken);
-      };
+      });
 
-      this.ws.onmessage = (event) => {
-        this.handleMessage(event.data);
-      };
+      this.ws.on('message', (data: WebSocket.Data) => {
+        this.handleMessage(data.toString());
+      });
 
-      this.ws.onclose = () => {
+      this.ws.on('close', () => {
         this.cleanup();
         this.stats.connected = false;
         this.statusChangeEmitter.fire(false);
         this.attemptReconnect();
-      };
+      });
 
-      this.ws.onerror = (error) => {
+      this.ws.on('error', (error: Error) => {
         console.error('WebSocket error:', error);
         vscode.window.showErrorMessage(`LSDAMM: Connection error`);
-      };
+      });
     } catch (error) {
       console.error('Failed to connect:', error);
       vscode.window.showErrorMessage(`LSDAMM: Failed to connect - ${(error as Error).message}`);
@@ -188,11 +188,12 @@ export class MeshService extends EventEmitter implements vscode.Disposable {
         },
       };
 
-      // Set up response listener
+      // Set up response listener with configurable timeout
+      const timeoutMs = config.get<number>('requestTimeoutMs') ?? 120000;
       const timeout = setTimeout(() => {
         this.removeAllListeners(`response:${messageId}`);
         reject(new Error('Request timeout'));
-      }, 120000); // 2 minute timeout for extended thinking
+      }, timeoutMs);
 
       this.once(`response:${messageId}`, (response: { content?: string; usage?: { totalTokens?: number } }) => {
         clearTimeout(timeout);
