@@ -203,61 +203,6 @@ router.get('/:fileId', async (req: Request, res: Response) => {
 });
 
 /**
- * POST /api/vision/analyze
- * Analyze an image with AI vision capabilities
- */
-router.post('/analyze', async (req: Request, res: Response) => {
-  try {
-    const userId = req.user?.sub || req.apiKey?.user_id;
-    if (!userId) {
-      res.status(401).json({ error: 'Authentication required' });
-      return;
-    }
-
-    const { imageUrl, imageData, prompt, provider, model } = req.body;
-
-    if (!imageUrl && !imageData) {
-      res.status(400).json({ error: 'imageUrl or imageData is required' });
-      return;
-    }
-
-    if (!prompt) {
-      res.status(400).json({ error: 'prompt is required' });
-      return;
-    }
-
-    // Import router for vision processing
-    const { route } = await import('../models/router.js');
-
-    // Prepare image content for vision models
-    // Note: Vision support varies by provider, this is a simplified implementation
-    const userMessage = imageUrl 
-      ? `${prompt}\n\nImage URL: ${imageUrl}`
-      : `${prompt}\n\n[Image data provided as base64]`;
-
-    const response = await route({
-      messages: [{ role: 'user', content: userMessage }],
-      preferredProvider: provider as 'openai' | 'anthropic' | 'ollama' | 'google' | 'xai' | undefined,
-      preferredModel: model,
-      capabilities: ['vision'],
-      temperature: 0.7,
-      maxTokens: 2048
-    });
-
-    res.json({
-      analysis: response.content,
-      provider: response.provider,
-      model: response.model,
-      tokensUsed: response.usage?.totalTokens
-    });
-
-  } catch (error) {
-    logger.error('Vision analysis failed', { error });
-    res.status(500).json({ error: 'Analysis failed', message: (error as Error).message });
-  }
-});
-
-/**
  * DELETE /api/attachments/:fileId
  * Delete an attachment
  */

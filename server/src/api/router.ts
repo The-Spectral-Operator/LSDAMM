@@ -122,6 +122,7 @@ export async function createApiRouter(): Promise<Router> {
   const meshEndpoints = await import('./mesh_endpoints.js');
   const healthEndpoints = await import('./health.js');
   const attachmentEndpoints = await import('./attachment_endpoints.js');
+  const visionEndpoints = await import('./vision_endpoints.js');
 
   // Health check (no auth required)
   router.use('/health', healthEndpoints.default);
@@ -135,11 +136,9 @@ export async function createApiRouter(): Promise<Router> {
   // Mesh endpoints (requires auth)
   router.use('/mesh', requireAuth, meshEndpoints.default);
 
-  // Attachment endpoints (requires auth)
+  // Attachment and vision endpoints (requires auth)
   router.use('/attachments', requireAuth, attachmentEndpoints.default);
-  
-  // Vision endpoints (requires auth)
-  router.use('/vision', requireAuth, attachmentEndpoints.default);
+  router.use('/vision', requireAuth, visionEndpoints.default);
 
   // AI completion endpoint (requires auth)
   router.post('/completions', requireAuth, async (req: Request, res: Response) => {
