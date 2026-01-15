@@ -21,6 +21,26 @@ interface MessageEnvelope {
   metadata?: Record<string, unknown>;
 }
 
+interface MeshStatistics {
+  connected: boolean;
+  activeNodes: number;
+  messagesSent: number;
+  messagesReceived: number;
+  avgLatencyMs: number;
+  tokensUsed: number;
+  costUsd: number;
+  uptimeSeconds: number;
+}
+
+interface MeshNode {
+  id: string;
+  address: string;
+  port: number;
+  state: string;
+  isMainNode: boolean;
+  lastSeen: number;
+}
+
 export class MeshService extends EventEmitter implements vscode.Disposable {
   private ws: WebSocket | null = null;
   private context: vscode.ExtensionContext;
@@ -28,6 +48,19 @@ export class MeshService extends EventEmitter implements vscode.Disposable {
   private reconnectAttempts = 0;
   private heartbeatInterval: NodeJS.Timeout | null = null;
   private statusChangeEmitter = new vscode.EventEmitter<boolean>();
+  
+  // Statistics tracking
+  private stats: MeshStatistics = {
+    connected: false,
+    activeNodes: 0,
+    messagesSent: 0,
+    messagesReceived: 0,
+    avgLatencyMs: 0,
+    tokensUsed: 0,
+    costUsd: 0,
+    uptimeSeconds: 0,
+  };
+  private connectionStartTime: number = 0;
 
   readonly onStatusChange = this.statusChangeEmitter.event;
 
@@ -62,6 +95,7 @@ export class MeshService extends EventEmitter implements vscode.Disposable {
       this.ws.onopen = () => {
         console.log('Connected to mesh server');
         this.reconnectAttempts = 0;
+        this.connectionStartTime = Date.now();
         this.register(clientId, authToken);
       };
 
@@ -71,6 +105,7 @@ export class MeshService extends EventEmitter implements vscode.Disposable {
 
       this.ws.onclose = () => {
         this.cleanup();
+        this.stats.connected = false;
         this.statusChangeEmitter.fire(false);
         this.attemptReconnect();
       };
@@ -94,6 +129,7 @@ export class MeshService extends EventEmitter implements vscode.Disposable {
       this.ws.close(1000, 'User disconnect');
       this.ws = null;
     }
+    this.stats.connected = false;
     this.statusChangeEmitter.fire(false);
   }
 
@@ -113,6 +149,10 @@ export class MeshService extends EventEmitter implements vscode.Disposable {
       provider?: string;
       model?: string;
       systemPrompt?: string;
+      extendedThinking?: boolean;
+      maxTokens?: number;
+      imageUri?: string;
+      vision?: boolean;
     }
   ): Promise<string> {
     return new Promise((resolve, reject) => {
@@ -123,6 +163,7 @@ export class MeshService extends EventEmitter implements vscode.Disposable {
 
       const messageId = uuidv4();
       const config = vscode.workspace.getConfiguration('lsdamm');
+      const startTime = Date.now();
 
       const message: MessageEnvelope = {
         messageId,
@@ -139,6 +180,11 @@ export class MeshService extends EventEmitter implements vscode.Disposable {
           provider: options?.provider || config.get<string>('defaultProvider'),
           model: options?.model || config.get<string>('defaultModel'),
           stream: false,
+          systemPrompt: options?.systemPrompt,
+          extendedThinking: options?.extendedThinking,
+          maxTokens: options?.maxTokens,
+          vision: options?.vision,
+          imageUri: options?.imageUri,
         },
       };
 
@@ -146,11 +192,165 @@ export class MeshService extends EventEmitter implements vscode.Disposable {
       const timeout = setTimeout(() => {
         this.removeAllListeners(`response:${messageId}`);
         reject(new Error('Request timeout'));
+      }, 120000); // 2 minute timeout for extended thinking
+
+      this.once(`response:${messageId}`, (response: { content?: string; usage?: { totalTokens?: number } }) => {
+        clearTimeout(timeout);
+        
+        // Update statistics
+        const latency = Date.now() - startTime;
+        this.stats.avgLatencyMs = (this.stats.avgLatencyMs + latency) / 2;
+        this.stats.messagesReceived++;
+        if (response.usage?.totalTokens) {
+          this.stats.tokensUsed += response.usage.totalTokens;
+        }
+        
+        resolve(response.content || '');
+      });
+
+      this.stats.messagesSent++;
+      this.ws?.send(JSON.stringify(message));
+    });
+  }
+
+  /**
+   * Text-to-speech conversion
+   */
+  async textToSpeech(text: string, options?: { voice?: string }): Promise<void> {
+    return new Promise((resolve, reject) => {
+      if (!this.isConnected()) {
+        reject(new Error('Not connected to mesh server'));
+        return;
+      }
+
+      const messageId = uuidv4();
+      const config = vscode.workspace.getConfiguration('lsdamm');
+
+      const message: MessageEnvelope = {
+        messageId,
+        version: '1.0',
+        type: 'COMMAND',
+        source: {
+          clientId: config.get<string>('clientId') || '',
+          sessionId: this.sessionId || '',
+        },
+        timestamp: Date.now(),
+        priority: 5,
+        payload: {
+          command: 'text_to_speech',
+          text,
+          voice: options?.voice || config.get<string>('ttsVoice') || 'alloy',
+        },
+      };
+
+      const timeout = setTimeout(() => {
+        this.removeAllListeners(`response:${messageId}`);
+        reject(new Error('TTS request timeout'));
+      }, 30000);
+
+      this.once(`response:${messageId}`, () => {
+        clearTimeout(timeout);
+        resolve();
+      });
+
+      this.ws?.send(JSON.stringify(message));
+    });
+  }
+
+  /**
+   * Upload an attachment
+   */
+  async uploadAttachment(filePath: string): Promise<string> {
+    return new Promise((resolve, reject) => {
+      if (!this.isConnected()) {
+        reject(new Error('Not connected to mesh server'));
+        return;
+      }
+
+      const messageId = uuidv4();
+      const config = vscode.workspace.getConfiguration('lsdamm');
+
+      const message: MessageEnvelope = {
+        messageId,
+        version: '1.0',
+        type: 'COMMAND',
+        source: {
+          clientId: config.get<string>('clientId') || '',
+          sessionId: this.sessionId || '',
+        },
+        timestamp: Date.now(),
+        priority: 5,
+        payload: {
+          command: 'upload_attachment',
+          filePath,
+        },
+      };
+
+      const timeout = setTimeout(() => {
+        this.removeAllListeners(`response:${messageId}`);
+        reject(new Error('Upload timeout'));
       }, 60000);
 
-      this.once(`response:${messageId}`, (response: { content?: string }) => {
+      this.once(`response:${messageId}`, (response: { attachmentId?: string }) => {
         clearTimeout(timeout);
-        resolve(response.content || '');
+        resolve(response.attachmentId || '');
+      });
+
+      this.ws?.send(JSON.stringify(message));
+    });
+  }
+
+  /**
+   * Get real-time statistics
+   */
+  async getStatistics(): Promise<MeshStatistics> {
+    // Update uptime
+    if (this.connectionStartTime > 0) {
+      this.stats.uptimeSeconds = Math.floor((Date.now() - this.connectionStartTime) / 1000);
+    }
+    this.stats.connected = this.isConnected();
+    
+    return { ...this.stats };
+  }
+
+  /**
+   * Get mesh nodes
+   */
+  async getNodes(): Promise<MeshNode[]> {
+    return new Promise((resolve, reject) => {
+      if (!this.isConnected()) {
+        reject(new Error('Not connected to mesh server'));
+        return;
+      }
+
+      const messageId = uuidv4();
+      const config = vscode.workspace.getConfiguration('lsdamm');
+
+      const message: MessageEnvelope = {
+        messageId,
+        version: '1.0',
+        type: 'QUERY',
+        source: {
+          clientId: config.get<string>('clientId') || '',
+          sessionId: this.sessionId || '',
+        },
+        timestamp: Date.now(),
+        priority: 5,
+        payload: {
+          queryType: 'get_nodes',
+        },
+      };
+
+      const timeout = setTimeout(() => {
+        this.removeAllListeners(`response:${messageId}`);
+        // Return empty array on timeout instead of error
+        resolve([]);
+      }, 10000);
+
+      this.once(`response:${messageId}`, (response: { nodes?: MeshNode[] }) => {
+        clearTimeout(timeout);
+        this.stats.activeNodes = response.nodes?.length || 0;
+        resolve(response.nodes || []);
       });
 
       this.ws?.send(JSON.stringify(message));
@@ -161,6 +361,8 @@ export class MeshService extends EventEmitter implements vscode.Disposable {
    * Register with server
    */
   private register(clientId: string, authToken: string): void {
+    const config = vscode.workspace.getConfiguration('lsdamm');
+    
     const message: MessageEnvelope = {
       messageId: uuidv4(),
       version: '1.0',
@@ -177,6 +379,10 @@ export class MeshService extends EventEmitter implements vscode.Disposable {
         clientType: 'vscode',
         capabilities: {
           supportsStreaming: true,
+          supportsExtendedThinking: config.get<boolean>('enableExtendedThinking'),
+          supportsVision: config.get<boolean>('enableVision'),
+          supportsTTS: config.get<boolean>('enableTTS'),
+          supportsAttachments: config.get<boolean>('enableAttachments'),
         },
       },
     };
@@ -195,6 +401,7 @@ export class MeshService extends EventEmitter implements vscode.Disposable {
         case 'REGISTER_ACK':
           if ((message.payload as { success?: boolean }).success) {
             this.sessionId = (message.payload as { sessionId: string }).sessionId;
+            this.stats.connected = true;
             this.startHeartbeat();
             this.statusChangeEmitter.fire(true);
             vscode.window.showInformationMessage('LSDAMM: Connected to mesh server');
@@ -213,6 +420,14 @@ export class MeshService extends EventEmitter implements vscode.Disposable {
         case 'ERROR':
           const errorPayload = message.payload as { errorMessage?: string };
           vscode.window.showErrorMessage(`LSDAMM: ${errorPayload.errorMessage || 'Unknown error'}`);
+          break;
+          
+        case 'EVENT':
+          // Handle events like node updates
+          const eventPayload = message.payload as { eventType?: string; nodeCount?: number };
+          if (eventPayload.eventType === 'node_update' && eventPayload.nodeCount !== undefined) {
+            this.stats.activeNodes = eventPayload.nodeCount;
+          }
           break;
       }
     } catch (error) {

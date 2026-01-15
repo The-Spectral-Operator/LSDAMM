@@ -43,8 +43,9 @@ export interface RouteResponse {
 }
 
 export interface StreamChunk {
-  type: 'content' | 'metadata' | 'error';
+  type: 'content' | 'thinking' | 'metadata' | 'error';
   content?: string;
+  thinking?: string;
   provider?: ProviderId;
   metadata?: Record<string, unknown>;
   error?: string;
@@ -259,8 +260,9 @@ export async function* streamRoute(request: RouteRequest): AsyncGenerator<Stream
 
   try {
     let stream: AsyncGenerator<{
-      type: 'content' | 'metadata' | 'error';
+      type: 'content' | 'thinking' | 'metadata' | 'error';
       content?: string;
+      thinking?: string;
       metadata?: Record<string, unknown>;
       error?: string;
     }>;

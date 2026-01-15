@@ -37,6 +37,13 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
     vscode.commands.registerCommand('lsdamm.explainCode', () => commandHandler.explainCode()),
     vscode.commands.registerCommand('lsdamm.reviewCode', () => commandHandler.reviewCode()),
     vscode.commands.registerCommand('lsdamm.generateTests', () => commandHandler.generateTests()),
+    // Extended features
+    vscode.commands.registerCommand('lsdamm.extendedThinking', () => commandHandler.extendedThinking()),
+    vscode.commands.registerCommand('lsdamm.analyzeImage', () => commandHandler.analyzeImage()),
+    vscode.commands.registerCommand('lsdamm.textToSpeech', () => commandHandler.textToSpeech()),
+    vscode.commands.registerCommand('lsdamm.uploadAttachment', () => commandHandler.uploadAttachment()),
+    vscode.commands.registerCommand('lsdamm.showStatistics', () => commandHandler.showStatistics()),
+    vscode.commands.registerCommand('lsdamm.showNodes', () => commandHandler.showNodes()),
   ];
 
   // Add all disposables to context

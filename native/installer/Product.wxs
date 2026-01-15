@@ -1,0 +1,120 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    LSDAMM Native Client - WiX Installer Configuration
+    Lackadaisical Spectral Distributed AI MCP Mesh
+    
+    Build with WiX 3.14:
+    candle.exe Product.wxs -out Product.wixobj
+    light.exe Product.wixobj -out LSDAMM-Setup.msi -ext WixUIExtension
+    
+    (c) 2025 Lackadaisical Security
+-->
+<Wix xmlns="http://schemas.microsoft.com/wix/2006/wi">
+    <Product Id="*"
+             Name="LSDAMM - Distributed AI Mesh"
+             Language="1033"
+             Version="1.0.0.0"
+             Manufacturer="Lackadaisical Security"
+             UpgradeCode="E9F4C5A2-8B7D-4C3E-9F6A-1D2E3F4A5B6C">
+        
+        <Package InstallerVersion="500"
+                 Compressed="yes"
+                 InstallScope="perMachine"
+                 Description="LSDAMM - Lackadaisical Spectral Distributed AI MCP Mesh"
+                 Comments="A distributed AI coordination platform with SWIM gossip protocol"
+                 Manufacturer="Lackadaisical Security"/>
+        
+        <!-- Upgrade handling -->
+        <MajorUpgrade DowngradeErrorMessage="A newer version of [ProductName] is already installed." />
+        
+        <!-- Embedded cab file -->
+        <MediaTemplate EmbedCab="yes" CompressionLevel="high" />
+        
+        <!-- Feature tree -->
+        <Feature Id="MainApplication" Title="LSDAMM Client" Level="1" Description="The main LSDAMM application">
+            <ComponentGroupRef Id="ApplicationComponents" />
+            <ComponentGroupRef Id="ConfigComponents" />
+            <ComponentRef Id="ApplicationShortcut" />
+            <ComponentRef Id="DesktopShortcut" />
+        </Feature>
+        
+        <!-- UI -->
+        <UIRef Id="WixUI_InstallDir" />
+        <Property Id="WIXUI_INSTALLDIR" Value="INSTALLFOLDER" />
+        <WixVariable Id="WixUILicenseRtf" Value="assets/license.rtf" />
+        <WixVariable Id="WixUIBannerBmp" Value="assets/banner.bmp" />
+        <WixVariable Id="WixUIDialogBmp" Value="assets/dialog.bmp" />
+        
+        <!-- Icon -->
+        <Icon Id="LSDAMM.ico" SourceFile="assets/icon.ico" />
+        <Property Id="ARPPRODUCTICON" Value="LSDAMM.ico" />
+        <Property Id="ARPHELPLINK" Value="https://lackadaisical-security.com" />
+        <Property Id="ARPURLINFOABOUT" Value="https://github.com/Lackadaisical-Security/LSDAMM" />
+        
+        <!-- Directory structure -->
+        <Directory Id="TARGETDIR" Name="SourceDir">
+            <Directory Id="ProgramFiles64Folder">
+                <Directory Id="INSTALLFOLDER" Name="LSDAMM">
+                    <Directory Id="ConfigDir" Name="config" />
+                    <Directory Id="LogsDir" Name="logs" />
+                </Directory>
+            </Directory>
+            <Directory Id="ProgramMenuFolder">
+                <Directory Id="ApplicationProgramsFolder" Name="LSDAMM"/>
+            </Directory>
+            <Directory Id="DesktopFolder" Name="Desktop" />
+        </Directory>
+        
+        <!-- Application components -->
+        <ComponentGroup Id="ApplicationComponents" Directory="INSTALLFOLDER">
+            <Component Id="MainExecutable" Guid="A1B2C3D4-E5F6-7890-ABCD-EF1234567890">
+                <File Id="lsdamm.exe" Source="$(var.BuildDir)/lsdamm-native.exe" KeyPath="yes" />
+            </Component>
+        </ComponentGroup>
+        
+        <!-- Configuration components -->
+        <ComponentGroup Id="ConfigComponents" Directory="ConfigDir">
+            <Component Id="DefaultConfig" Guid="B2C3D4E5-F6A7-8901-BCDE-F12345678901">
+                <File Id="config.toml" Source="config/lsdamm.example.toml" Name="lsdamm.toml" />
+            </Component>
+        </ComponentGroup>
+        
+        <!-- Start menu shortcut -->
+        <DirectoryRef Id="ApplicationProgramsFolder">
+            <Component Id="ApplicationShortcut" Guid="C3D4E5F6-A7B8-9012-CDEF-123456789012">
+                <Shortcut Id="ApplicationStartMenuShortcut"
+                          Name="LSDAMM"
+                          Description="Lackadaisical Spectral Distributed AI MCP Mesh"
+                          Target="[#lsdamm.exe]"
+                          WorkingDirectory="INSTALLFOLDER"
+                          Icon="LSDAMM.ico" />
+                <RemoveFolder Id="CleanUpShortCut" Directory="ApplicationProgramsFolder" On="uninstall"/>
+                <RegistryValue Root="HKCU" Key="Software\LackadaisicalSecurity\LSDAMM" 
+                               Name="installed" Type="integer" Value="1" KeyPath="yes"/>
+            </Component>
+        </DirectoryRef>
+        
+        <!-- Desktop shortcut -->
+        <DirectoryRef Id="DesktopFolder">
+            <Component Id="DesktopShortcut" Guid="D4E5F6A7-B8C9-0123-DEF0-234567890123">
+                <Shortcut Id="DesktopShortcutLSDAMM"
+                          Name="LSDAMM"
+                          Description="Lackadaisical Spectral Distributed AI MCP Mesh"
+                          Target="[#lsdamm.exe]"
+                          WorkingDirectory="INSTALLFOLDER"
+                          Icon="LSDAMM.ico" />
+                <RegistryValue Root="HKCU" Key="Software\LackadaisicalSecurity\LSDAMM" 
+                               Name="desktopShortcut" Type="integer" Value="1" KeyPath="yes"/>
+            </Component>
+        </DirectoryRef>
+        
+        <!-- Custom actions -->
+        <CustomAction Id="SetInstallFolder" Property="INSTALLFOLDER" 
+                      Value="[ProgramFiles64Folder]LSDAMM" Execute="firstSequence" />
+        
+        <InstallExecuteSequence>
+            <Custom Action="SetInstallFolder" Before="CostFinalize">NOT INSTALLFOLDER</Custom>
+        </InstallExecuteSequence>
+        
+    </Product>
+</Wix>

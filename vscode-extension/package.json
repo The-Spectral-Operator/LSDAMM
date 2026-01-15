@@ -65,6 +65,36 @@
         "command": "lsdamm.generateTests",
         "title": "Generate Tests for Selected Code",
         "category": "LSDAMM"
+      },
+      {
+        "command": "lsdamm.extendedThinking",
+        "title": "Extended Thinking Analysis",
+        "category": "LSDAMM"
+      },
+      {
+        "command": "lsdamm.analyzeImage",
+        "title": "Analyze Image with Vision",
+        "category": "LSDAMM"
+      },
+      {
+        "command": "lsdamm.textToSpeech",
+        "title": "Read Response Aloud (TTS)",
+        "category": "LSDAMM"
+      },
+      {
+        "command": "lsdamm.uploadAttachment",
+        "title": "Upload Attachment to Context",
+        "category": "LSDAMM"
+      },
+      {
+        "command": "lsdamm.showStatistics",
+        "title": "Show Real-time Statistics",
+        "category": "LSDAMM"
+      },
+      {
+        "command": "lsdamm.showNodes",
+        "title": "Show Mesh Nodes",
+        "category": "LSDAMM"
       }
     ],
     "menus": {
@@ -119,6 +149,37 @@
           "type": "string",
           "default": "",
           "description": "Default AI model (leave empty for provider default)"
+        },
+        "lsdamm.enableExtendedThinking": {
+          "type": "boolean",
+          "default": true,
+          "description": "Enable extended thinking mode for complex analysis"
+        },
+        "lsdamm.enableVision": {
+          "type": "boolean",
+          "default": true,
+          "description": "Enable vision capabilities for image analysis"
+        },
+        "lsdamm.enableTTS": {
+          "type": "boolean",
+          "default": true,
+          "description": "Enable text-to-speech for responses"
+        },
+        "lsdamm.ttsVoice": {
+          "type": "string",
+          "enum": ["alloy", "echo", "fable", "onyx", "nova", "shimmer"],
+          "default": "alloy",
+          "description": "Voice for text-to-speech"
+        },
+        "lsdamm.enableAttachments": {
+          "type": "boolean",
+          "default": true,
+          "description": "Enable file attachment uploads"
+        },
+        "lsdamm.maxAttachmentSize": {
+          "type": "number",
+          "default": 10485760,
+          "description": "Maximum attachment size in bytes (default 10MB)"
         }
       }
     },
@@ -138,8 +199,16 @@
           "name": "Connection Status"
         },
         {
+          "id": "lsdamm.nodes",
+          "name": "Mesh Nodes"
+        },
+        {
           "id": "lsdamm.providers",
           "name": "AI Providers"
+        },
+        {
+          "id": "lsdamm.statistics",
+          "name": "Real-time Statistics"
         },
         {
           "id": "lsdamm.history",
