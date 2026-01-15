@@ -46,9 +46,10 @@ export function requireAuth(req: Request, res: Response, next: NextFunction): vo
     req.user = payload;
     next();
   } else if (authHeader.startsWith('lsk_')) {
-    // API key
-    validateAPIKey(authHeader)
-      .then(key => {
+    // API key - use async/await with proper error handling
+    (async () => {
+      try {
+        const key = await validateAPIKey(authHeader);
         if (!key) {
           res.status(401).json({ error: 'Invalid API key' });
           return;
@@ -60,11 +61,11 @@ export function requireAuth(req: Request, res: Response, next: NextFunction): vo
           scopes: key.scopes,
         };
         next();
-      })
-      .catch(error => {
+      } catch (error) {
         logger.error('API key validation error', { error });
         res.status(500).json({ error: 'Authentication error' });
-      });
+      }
+    })();
   } else {
     res.status(401).json({ error: 'Invalid authorization format' });
   }

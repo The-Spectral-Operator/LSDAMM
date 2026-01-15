@@ -4,6 +4,7 @@
 
 import { Router, Request, Response } from 'express';
 import { getDatabase } from '../db/database.js';
+import { createRateLimiter } from '../util/rate_limit.js';
 import { isEnabled as isOpenAIEnabled } from '../models/openai_service.js';
 import { isEnabled as isAnthropicEnabled } from '../models/anthropic_service.js';
 import { isLocalEnabled as isOllamaLocalEnabled, isCloudEnabled as isOllamaCloudEnabled } from '../models/ollama_service.js';
@@ -11,6 +12,9 @@ import { isEnabled as isGoogleEnabled } from '../models/google_service.js';
 import { isEnabled as isXAIEnabled } from '../models/xai_service.js';
 
 const router = Router();
+
+// Rate limiter for health endpoints
+const healthRateLimiter = createRateLimiter({ points: 30, duration: 60000 });
 
 interface HealthCheck {
   status: 'healthy' | 'degraded' | 'unhealthy';
@@ -35,7 +39,7 @@ interface HealthCheck {
  * GET /api/health
  * Basic health check
  */
-router.get('/', async (_req: Request, res: Response) => {
+router.get('/', healthRateLimiter, async (_req: Request, res: Response) => {
   const health: HealthCheck = {
     status: 'healthy',
     timestamp: new Date().toISOString(),
@@ -87,7 +91,7 @@ router.get('/', async (_req: Request, res: Response) => {
  * GET /api/health/live
  * Kubernetes liveness probe
  */
-router.get('/live', (_req: Request, res: Response) => {
+router.get('/live', healthRateLimiter, (_req: Request, res: Response) => {
   res.status(200).json({ status: 'alive' });
 });
 
@@ -95,7 +99,7 @@ router.get('/live', (_req: Request, res: Response) => {
  * GET /api/health/ready
  * Kubernetes readiness probe
  */
-router.get('/ready', async (_req: Request, res: Response) => {
+router.get('/ready', healthRateLimiter, async (_req: Request, res: Response) => {
   try {
     const db = getDatabase();
     db.prepare('SELECT 1').get();

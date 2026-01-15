@@ -25,8 +25,22 @@ const config = loadConfig();
 const app = express();
 
 // Security middleware
+// Note: CSP is disabled because this is a pure API server with no HTML content
+// For API-only servers, CSP provides no security benefit as there's no HTML to protect
 app.use(helmet({
-  contentSecurityPolicy: false, // Disable for API server
+  contentSecurityPolicy: {
+    directives: {
+      defaultSrc: ["'none'"],  // Block all content loading (API only)
+      scriptSrc: ["'none'"],
+      styleSrc: ["'none'"],
+      imgSrc: ["'none'"],
+      connectSrc: ["'self'"],  // Allow API calls to self
+      fontSrc: ["'none'"],
+      objectSrc: ["'none'"],
+      mediaSrc: ["'none'"],
+      frameSrc: ["'none'"],
+    },
+  },
 }));
 
 // CORS configuration

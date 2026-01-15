@@ -8,6 +8,10 @@ on:
   release:
     types: [published]
 
+# Default minimal permissions
+permissions:
+  contents: read
+
 env:
   NODE_VERSION: '20'
   REGISTRY: ghcr.io
@@ -18,6 +22,8 @@ jobs:
   server:
     name: Server Build & Test
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     
     steps:
       - uses: actions/checkout@v4
@@ -60,6 +66,8 @@ jobs:
   electron:
     name: Electron Build
     runs-on: ${{ matrix.os }}
+    permissions:
+      contents: read
     strategy:
       matrix:
         os: [ubuntu-latest, macos-latest, windows-latest]
@@ -97,6 +105,8 @@ jobs:
   vscode-extension:
     name: VS Code Extension
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     
     steps:
       - uses: actions/checkout@v4
@@ -185,6 +195,9 @@ jobs:
   security:
     name: Security Scan
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      security-events: write
     
     steps:
       - uses: actions/checkout@v4
@@ -210,6 +223,8 @@ jobs:
     needs: [server, docker]
     if: github.event_name == 'release'
     environment: production
+    permissions:
+      contents: read
     
     steps:
       - name: Deploy notification
