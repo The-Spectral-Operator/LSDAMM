@@ -45,8 +45,8 @@ export function generateAccessToken(
     jti: uuidv4(),
   };
 
-  const token = jwt.sign(payload, config.auth.jwt_secret, {
-    expiresIn: config.auth.jwt_expires_in,
+  const token = jwt.sign(payload as object, config.auth.jwt_secret, {
+    expiresIn: expiresIn,
     issuer: 'lsdamm',
     audience: 'lsdamm-api',
   });

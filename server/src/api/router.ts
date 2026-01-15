@@ -112,14 +112,14 @@ export function requireScope(...scopes: string[]) {
 /**
  * Create the main API router
  */
-export function createApiRouter(): Router {
+export async function createApiRouter(): Promise<Router> {
   const router = Router();
 
-  // Import endpoint modules
-  const userEndpoints = require('./user_endpoints.js');
-  const keyEndpoints = require('./key_endpoints.js');
-  const meshEndpoints = require('./mesh_endpoints.js');
-  const healthEndpoints = require('./health.js');
+  // Import endpoint modules (ESM dynamic imports)
+  const userEndpoints = await import('./user_endpoints.js');
+  const keyEndpoints = await import('./key_endpoints.js');
+  const meshEndpoints = await import('./mesh_endpoints.js');
+  const healthEndpoints = await import('./health.js');
 
   // Health check (no auth required)
   router.use('/health', healthEndpoints.default);

@@ -9,8 +9,8 @@ import { v4 as uuidv4 } from 'uuid';
 import { getConfig } from '../util/config_parser.js';
 import { logger, createCorrelatedLogger } from '../util/logging.js';
 import { WebSocketRateLimiter } from '../util/rate_limit.js';
-import { MessageEnvelope, validateMessage, MessageType } from './message_router.js';
-import { SessionManager, Session } from './session_manager.js';
+import { MessageEnvelope, validateMessage } from './message_router.js';
+import { SessionManager } from './session_manager.js';
 
 export interface WebSocketClient {
   sessionId: string;
@@ -301,7 +301,7 @@ export class CoordinationWebSocketServer {
    * Handle AI request
    */
   private async handleAIRequest(sessionId: string, message: MessageEnvelope): Promise<void> {
-    const { route, streamRoute } = await import('./router.js');
+    const { route, streamRoute } = await import('../models/router.js');
     
     const payload = message.payload as {
       content: string;
@@ -330,7 +330,7 @@ export class CoordinationWebSocketServer {
             correlationId: message.messageId,
             timestamp: Date.now(),
             priority: message.priority,
-            payload: chunk,
+            payload: chunk as unknown as Record<string, unknown>,
           });
         }
 
@@ -363,7 +363,7 @@ export class CoordinationWebSocketServer {
           inReplyTo: message.messageId,
           timestamp: Date.now(),
           priority: message.priority,
-          payload: response,
+          payload: response as unknown as Record<string, unknown>,
         });
       }
     } catch (error) {
@@ -376,7 +376,7 @@ export class CoordinationWebSocketServer {
    * Handle query
    */
   private async handleQuery(sessionId: string, message: MessageEnvelope): Promise<void> {
-    const { queryType, query } = message.payload as {
+    const { queryType } = message.payload as {
       queryType: string;
       query: unknown;
     };
@@ -386,12 +386,12 @@ export class CoordinationWebSocketServer {
 
       switch (queryType) {
         case 'list_providers':
-          const { getAvailableProviders } = await import('./router.js');
+          const { getAvailableProviders } = await import('../models/router.js');
           result = { providers: getAvailableProviders() };
           break;
 
         case 'list_models':
-          const { getAllModels } = await import('./router.js');
+          const { getAllModels } = await import('../models/router.js');
           result = { models: await getAllModels() };
           break;
 

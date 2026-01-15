@@ -6,7 +6,7 @@
 import Ajv from 'ajv';
 import addFormats from 'ajv-formats';
 import { v4 as uuidv4 } from 'uuid';
-import { executeRun } from '../db/database.js';
+import { executeRun, execute } from '../db/database.js';
 import { logger } from '../util/logging.js';
 
 // Message types
@@ -216,7 +216,6 @@ export function queueMessage(messageId: string, targetClientId: string): void {
  * Get pending messages for a client
  */
 export function getPendingMessages(clientId: string): MessageEnvelope[] {
-  const { execute } = require('../db/database.js');
   
   const pending = execute<{ message_id: string }>(
     `SELECT message_id FROM pending_messages 

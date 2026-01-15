@@ -4,7 +4,6 @@
 
 import { Router, Request, Response } from 'express';
 import { getDatabase } from '../db/database.js';
-import { getConfig } from '../util/config_parser.js';
 import { isEnabled as isOpenAIEnabled } from '../models/openai_service.js';
 import { isEnabled as isAnthropicEnabled } from '../models/anthropic_service.js';
 import { isLocalEnabled as isOllamaLocalEnabled, isCloudEnabled as isOllamaCloudEnabled } from '../models/ollama_service.js';

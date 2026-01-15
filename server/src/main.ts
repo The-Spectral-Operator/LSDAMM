@@ -67,8 +67,8 @@ if (config.monitoring.prometheus_enabled) {
   const register = new promClient.Registry();
   promClient.collectDefaultMetrics({ register });
   
-  // Custom metrics
-  const httpRequestDuration = new promClient.Histogram({
+  // Custom metrics (registered for Prometheus scraping)
+  new promClient.Histogram({
     name: 'http_request_duration_seconds',
     help: 'HTTP request duration in seconds',
     labelNames: ['method', 'path', 'status'],
@@ -76,13 +76,13 @@ if (config.monitoring.prometheus_enabled) {
     registers: [register],
   });
 
-  const wsConnections = new promClient.Gauge({
+  new promClient.Gauge({
     name: 'ws_connections_total',
     help: 'Total WebSocket connections',
     registers: [register],
   });
 
-  const aiRequests = new promClient.Counter({
+  new promClient.Counter({
     name: 'ai_requests_total',
     help: 'Total AI provider requests',
     labelNames: ['provider', 'model', 'status'],
@@ -95,9 +95,6 @@ if (config.monitoring.prometheus_enabled) {
     res.end(await register.metrics());
   });
 }
-
-// API routes
-app.use('/api', createApiRouter());
 
 // Root endpoint
 app.get('/', (_req, res) => {
@@ -135,6 +132,10 @@ async function start(): Promise<void> {
     // Initialize database
     logger.info('Initializing database...');
     initializeDatabase();
+    
+    // Set up API routes (async because of dynamic imports)
+    const apiRouter = await createApiRouter();
+    app.use('/api', apiRouter);
     
     // Start WebSocket server
     wsServer.start(server);

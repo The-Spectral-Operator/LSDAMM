@@ -109,7 +109,7 @@ router.delete('/:keyId', async (req: Request, res: Response) => {
       return;
     }
 
-    const { keyId } = req.params;
+    const keyId = Array.isArray(req.params.keyId) ? req.params.keyId[0] : req.params.keyId;
 
     const revoked = await revokeAPIKey(keyId, userId);
 

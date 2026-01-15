@@ -5,7 +5,7 @@
 
 import crypto from 'node:crypto';
 import { v4 as uuidv4 } from 'uuid';
-import { executeOne, executeRun, execute } from '../db/database.js';
+import { executeRun, execute } from '../db/database.js';
 import { hashToken, verifyToken } from './password_hash.js';
 import { logger } from '../util/logging.js';
 

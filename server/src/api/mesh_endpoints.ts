@@ -3,6 +3,7 @@
  */
 
 import { Router, Request, Response } from 'express';
+import { v4 as uuidv4 } from 'uuid';
 import { listClients, registerClient } from '../mesh/session_manager.js';
 import { logger } from '../util/logging.js';
 
@@ -91,7 +92,7 @@ router.post('/broadcast', async (req: Request, res: Response) => {
     }
 
     const envelope = {
-      messageId: require('uuid').v4(),
+      messageId: uuidv4(),
       version: '1.0',
       type: 'BROADCAST',
       source: { clientId: 'api', sessionId: 'api' },

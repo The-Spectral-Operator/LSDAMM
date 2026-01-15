@@ -220,8 +220,19 @@ export async function sendResponsesMessage(
 
   try {
     // Use the responses API for stateful conversations
-    // @ts-expect-error - responses API may not be in types yet
-    const response = await client.responses.create({
+    // Note: The Responses API may require the beta client
+    const response = await (client as unknown as {
+      responses: {
+        create: (params: unknown) => Promise<{
+          id: string;
+          output_text?: string;
+          output?: Array<{ text?: string }>;
+          model: string;
+          usage?: { input_tokens?: number; output_tokens?: number };
+          status?: string;
+        }>;
+      };
+    }).responses.create({
       model,
       input,
       previous_response_id: options?.previousResponseId,
@@ -233,7 +244,7 @@ export async function sendResponsesMessage(
 
     return {
       messageId: response.id,
-      content: response.output_text ?? response.output?.[0]?.content ?? '',
+      content: response.output_text ?? response.output?.[0]?.text ?? '',
       model: response.model,
       usage: {
         promptTokens: response.usage?.input_tokens ?? 0,

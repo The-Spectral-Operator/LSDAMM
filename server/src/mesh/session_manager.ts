@@ -3,7 +3,6 @@
  * WebSocket session lifecycle management
  */
 
-import { v4 as uuidv4 } from 'uuid';
 import { execute, executeOne, executeRun } from '../db/database.js';
 import { hashToken, verifyToken } from '../auth/password_hash.js';
 import { logger } from '../util/logging.js';
