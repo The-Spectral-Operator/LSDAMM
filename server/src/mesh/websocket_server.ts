@@ -385,17 +385,19 @@ export class CoordinationWebSocketServer {
       let result: unknown;
 
       switch (queryType) {
-        case 'list_providers':
+        case 'list_providers': {
           const { getAvailableProviders } = await import('../models/router.js');
           result = { providers: getAvailableProviders() };
           break;
+        }
 
-        case 'list_models':
+        case 'list_models': {
           const { getAllModels } = await import('../models/router.js');
           result = { models: await getAllModels() };
           break;
+        }
 
-        case 'session_info':
+        case 'session_info': {
           const client = this.clients.get(sessionId);
           result = {
             sessionId,
@@ -404,6 +406,7 @@ export class CoordinationWebSocketServer {
             subscriptions: Array.from(client?.subscriptions || []),
           };
           break;
+        }
 
         default:
           result = { error: 'Unknown query type' };

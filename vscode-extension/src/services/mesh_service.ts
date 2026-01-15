@@ -417,18 +417,20 @@ export class MeshService extends EventEmitter implements vscode.Disposable {
           }
           break;
 
-        case 'ERROR':
+        case 'ERROR': {
           const errorPayload = message.payload as { errorMessage?: string };
           vscode.window.showErrorMessage(`LSDAMM: ${errorPayload.errorMessage || 'Unknown error'}`);
           break;
+        }
           
-        case 'EVENT':
+        case 'EVENT': {
           // Handle events like node updates
           const eventPayload = message.payload as { eventType?: string; nodeCount?: number };
           if (eventPayload.eventType === 'node_update' && eventPayload.nodeCount !== undefined) {
             this.stats.activeNodes = eventPayload.nodeCount;
           }
           break;
+        }
       }
     } catch (error) {
       console.error('Failed to parse message:', error);

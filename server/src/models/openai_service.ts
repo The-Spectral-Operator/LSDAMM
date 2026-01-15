@@ -304,7 +304,7 @@ export interface RateLimitStatus {
 }
 
 // Rate limit tracking (updated from response headers)
-let lastRateLimitStatus: RateLimitStatus | null = null;
+const lastRateLimitStatus: RateLimitStatus | null = null;
 
 export function getRateLimitStatus(): RateLimitStatus | null {
   return lastRateLimitStatus;
