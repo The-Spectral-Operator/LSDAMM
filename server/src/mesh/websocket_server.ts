@@ -464,7 +464,7 @@ export class CoordinationWebSocketServer {
               sessionId: payload.sessionMemoryId,
               role: 'assistant',
               content: response.content || '',
-              tokensUsed: response.usage?.total_tokens,
+              tokensUsed: response.usage?.totalTokens,
               provider: response.provider,
               model: response.model,
               latencyMs
