@@ -106,3 +106,4 @@ temp/
 # Package locks (optional - uncomment if you want to ignore)
 # package-lock.json
 # yarn.lock
+_codeql_detected_source_root
